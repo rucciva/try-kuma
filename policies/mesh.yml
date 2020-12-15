@@ -19,3 +19,8 @@ logging:
       type: file
       conf:
         path: /dev/stdout
+metrics:
+  enabledBackend: prometheus-1
+  backends:
+  - name: prometheus-1
+    type: prometheus
