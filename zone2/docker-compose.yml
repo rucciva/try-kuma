@@ -96,6 +96,9 @@ services:
 
   echo_server:
     image: ealen/echo-server:latest
+    depends_on:
+      echo_server_dp:
+        condition: service_started
     network_mode: service:echo_server_dp
     restart: unless-stopped
 
@@ -135,6 +138,9 @@ services:
 
   echo_client:
     image: appropriate/curl
+    depends_on:
+      echo_client_dp:
+        condition: service_started
     network_mode: service:echo_client_dp
     entrypoint: sh -c 
     command:
