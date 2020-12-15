@@ -45,7 +45,7 @@ services:
       default:
         ipv4_address: 172.16.111.200
     ports:
-      - 10001:10001
+      - 10001:12701
     volumes:
       - ./dataplanes/ingress.yml:/etc/kuma/dataplane.yml
       - ./secrets:/etc/kuma/secrets
