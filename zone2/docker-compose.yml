@@ -1,0 +1,142 @@
+version: "2.4"
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.112.0/24
+          gateway: 172.16.112.1
+
+services:
+  kuma:
+    image: kong-docker-kuma-docker.bintray.io/kuma-cp:$KUMA_VERSION
+    restart: unless-stopped
+    hostname: kuma
+    environment:
+      KUMA_MODE: remote
+      KUMA_MULTIZONE_REMOTE_ZONE: zone-2
+      KUMA_MULTIZONE_REMOTE_GLOBAL_ADDRESS: grpcs://${HOST_IP_ADDRESS}:5685
+    command: run
+  
+  ingress_token:
+    image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
+    restart: on-failure
+    network_mode: service:kuma
+    volumes:
+      - ./secrets:/etc/kuma/secrets
+    entrypoint: sh -c 
+    command: 
+      - kumactl generate dataplane-token 
+        --type=ingress 
+        --tag=kuma.io/service=ingress
+        --tag=kuma.io/zone=zone-2 > 
+          /etc/kuma/secrets/ingress.jwt
+
+  ingress:
+    image: kong-docker-kuma-docker.bintray.io/kuma-dp:$KUMA_VERSION
+    restart: unless-stopped
+    depends_on: 
+      kuma:
+        condition: service_started
+      ingress_token:
+        condition: service_started
+    networks:
+      default:
+        ipv4_address: 172.16.112.200
+    ports:
+      - 10003:10003
+    volumes:
+      - ./dataplanes/ingress.yml:/etc/kuma/dataplane.yml
+      - ./secrets:/etc/kuma/secrets
+    command: run 
+      --cp-address https://kuma:5678
+      --dataplane-token-file=/etc/kuma/secrets/ingress.jwt
+      --dataplane-file=/etc/kuma/dataplane.yml
+      --dataplane-var name=ingress-1
+      --dataplane-var address=172.16.112.200
+      --dataplane-var public_address=${HOST_IP_ADDRESS}
+      --dataplane-var public_port=10003
+      --dataplane-var zone=zone-2
+
+  echo_server_token:
+    image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
+    restart: on-failure
+    network_mode: service:kuma
+    volumes:
+      - ./secrets:/etc/kuma/secrets
+    entrypoint: sh -c 
+    command: 
+      - kumactl generate dataplane-token  
+        --tag=kuma.io/service=echo_server
+        --tag=kuma.io/zone=zone-2 > 
+          /etc/kuma/secrets/echo-server.jwt
+
+  echo_server_dp:
+    image: kong-docker-kuma-docker.bintray.io/kuma-dp:$KUMA_VERSION
+    restart: unless-stopped
+    depends_on: 
+      kuma:
+        condition: service_started
+      echo_server_token:
+        condition: service_started
+    networks:
+      default:
+        ipv4_address: 172.16.112.100
+    volumes:
+      - ./dataplanes/echo-server.yml:/etc/kuma/dataplane.yml
+      - ./secrets:/etc/kuma/secrets
+    command: run 
+      --cp-address https://kuma:5678
+      --dataplane-token-file=/etc/kuma/secrets/echo-server.jwt
+      --dataplane-file=/etc/kuma/dataplane.yml
+      --dataplane-var name=echo-server-2
+      --dataplane-var address=172.16.112.100
+      --dataplane-var zone=zone-2
+
+  echo_server:
+    image: ealen/echo-server:latest
+    network_mode: service:echo_server_dp
+    restart: unless-stopped
+
+
+  echo_client_token:
+    image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
+    restart: on-failure
+    network_mode: service:kuma
+    volumes:
+      - ./secrets:/etc/kuma/secrets
+    entrypoint: sh -c 
+    command: 
+      - kumactl generate dataplane-token  
+        --tag=kuma.io/service=echo_client
+        --tag=kuma.io/zone=zone-2 > 
+          /etc/kuma/secrets/echo-client.jwt
+  
+  echo_client_dp:
+    image: kong-docker-kuma-docker.bintray.io/kuma-dp:$KUMA_VERSION
+    restart: unless-stopped
+    depends_on: 
+      kuma:
+        condition: service_started
+      echo_client_token:
+        condition: service_started
+    volumes:
+      - ./dataplanes/echo-client.yml:/etc/kuma/dataplane.yml
+      - ./secrets:/etc/kuma/secrets
+    command: run 
+      --cp-address https://kuma:5678
+      --dataplane-token-file=/etc/kuma/secrets/echo-client.jwt
+      --dataplane-file=/etc/kuma/dataplane.yml
+      --dataplane-var name=echo-client-1
+      --dataplane-var address=0.0.0.0
+      --dataplane-var outbound_port_echo_server=10080
+      --dataplane-var zone=zone-2
+
+  echo_client:
+    image: appropriate/curl
+    network_mode: service:echo_client_dp
+    entrypoint: sh -c 
+    command:
+      - curl -v 127.0.0.1:10080
+    

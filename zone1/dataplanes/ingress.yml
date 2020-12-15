@@ -1,0 +1,13 @@
+type: Dataplane
+mesh: default
+name: {{ name }}
+networking:
+  address: {{ address }}
+  ingress:
+    publicAddress: {{ public_address }}
+    publicPort: {{ public_port }}
+  inbound:
+  - port: 12701
+    tags:
+      kuma.io/service: ingress
+      kuma.io/zone: {{ zone }}

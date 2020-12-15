@@ -1,0 +1,63 @@
+version: "2.4"
+services:
+  postgres:
+    image: postgres:10.1-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kuma
+      POSTGRES_USER: kuma
+      POSTGRES_PASSWORD: kuma 
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      start_period: 3s
+      timeout: 5s
+      retries: 3
+
+  migrator:
+    image: kong-docker-kuma-docker.bintray.io/kuma-cp:$KUMA_VERSION
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KUMA_STORE_TYPE: postgres
+      KUMA_STORE_POSTGRES_HOST: postgres
+      KUMA_STORE_POSTGRES_PORT: 5432
+      KUMA_STORE_POSTGRES_USER: kuma
+      KUMA_STORE_POSTGRES_PASSWORD: kuma
+      KUMA_STORE_POSTGRES_DB_NAME: kuma
+    command: migrate up
+
+  kuma:
+    image: kong-docker-kuma-docker.bintray.io/kuma-cp:$KUMA_VERSION
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_started
+    environment:
+      KUMA_MODE: global
+
+      KUMA_STORE_TYPE: postgres
+      KUMA_STORE_POSTGRES_HOST: postgres
+      KUMA_STORE_POSTGRES_PORT: 5432
+      KUMA_STORE_POSTGRES_USER: kuma
+      KUMA_STORE_POSTGRES_PASSWORD: kuma
+      KUMA_STORE_POSTGRES_DB_NAME: kuma
+    ports:
+      - 5685:5685
+      - 5681:5681
+    command: run
+  
+  policies:
+    image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
+    restart: on-failure
+    network_mode: service:kuma
+    volumes:
+      - ./policies:/etc/kuma/policies
+    entrypoint: sh -c 
+    command: 
+      - |
+        for FILE in /etc/kuma/policies/*.yml; do
+          kumactl apply -f $$FILE
+        done
+        

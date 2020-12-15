@@ -1,0 +1,21 @@
+type: Mesh
+name: default
+mtls:
+  enabledBackend: ca-1
+  backends:
+    - name: ca-1
+      type: builtin
+      dpCert:
+        rotation:
+          expiration: 7d
+      conf:
+        caCert:
+          RSAbits: 2048
+          expiration: 10y
+logging:
+  defaultBackend: file
+  backends:
+    - name: file
+      type: file
+      conf:
+        path: /dev/stdout

@@ -1,0 +1,15 @@
+type: Dataplane
+mesh: default
+name: {{ name }}
+networking:
+  address: {{ address }}
+  inbound:
+  - port: 12701
+    tags:
+      kuma.io/service: echo_client
+      kuma.io/zone: {{ zone }}
+  outbound:
+    - port: {{ outbound_port_echo_server }}
+      tags:
+        kuma.io/service: echo_server
+        
