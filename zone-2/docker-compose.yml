@@ -21,6 +21,10 @@ services:
       KUMA_MULTIZONE_REMOTE_GLOBAL_ADDRESS: grpcs://${HOST_IP_ADDRESS}:5685
     command: run
   
+  #
+  # INGRESS
+  #
+
   ingress_token:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
     restart: on-failure
@@ -62,6 +66,10 @@ services:
       --dataplane-var public_port=10003
       --dataplane-var zone=zone-2
 
+  #
+  # ECHO_SERVER
+  #
+
   echo_server_token:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
     restart: on-failure
@@ -99,10 +107,14 @@ services:
       --dataplane-var zone=zone-2
 
   echo_server:
-    image: ealen/echo-server:latest
+    image: hashicorp/http-echo
     network_mode: service:echo_server_dp
     restart: unless-stopped
+    command: -listen=127.0.0.1:8080 -text="hello world from zone-2"
 
+  #
+  # ECHO_CLIENT
+  #
 
   echo_client_token:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
@@ -135,7 +147,7 @@ services:
       --dataplane-file=/etc/kuma/dataplane.yml
       --dataplane-var name=echo-client-1
       --dataplane-var address=0.0.0.0
-      --dataplane-var outbound_port_echo_server=10080
+      --dataplane-var outbound_port_echo_server=8080
       --dataplane-var zone=zone-2
 
   echo_client:
@@ -143,5 +155,14 @@ services:
     network_mode: service:echo_client_dp
     entrypoint: sh -c 
     command:
-      - curl -v 127.0.0.1:10080
-    
+      - curl -s 127.0.0.1:8080
+  
+  #
+  # NON MEMBER
+  #
+
+  echo_client_unauthorized:
+    image: appropriate/curl
+    entrypoint: sh -c 
+    command:
+      - curl -s -v echo_server_dp:8080

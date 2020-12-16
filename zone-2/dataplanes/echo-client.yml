@@ -9,7 +9,8 @@ networking:
       kuma.io/service: echo_client
       kuma.io/zone: {{ zone }}
   outbound:
-    - port: {{ outbound_port_echo_server }}
+    - address: 127.0.0.1
+      port: {{ outbound_port_echo_server }}
       tags:
         kuma.io/service: echo_server
         

@@ -21,6 +21,10 @@ services:
       KUMA_MULTIZONE_REMOTE_GLOBAL_ADDRESS: grpcs://${HOST_IP_ADDRESS}:5685
     command: run
   
+  #
+  # INGRESS
+  #
+  
   ingress_token:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
     restart: on-failure
@@ -62,6 +66,10 @@ services:
       --dataplane-var public_port=10001
       --dataplane-var zone=zone-1
   
+  #
+  # ECHO_SERVER
+  #
+
   echo_server_token:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
     restart: on-failure
@@ -99,6 +107,7 @@ services:
       --dataplane-var zone=zone-1
 
   echo_server:
-    image: ealen/echo-server:latest
+    image: hashicorp/http-echo
     network_mode: service:echo_server_dp
     restart: unless-stopped
+    command: -listen=127.0.0.1:8080 -text="hello world from zone-1"
