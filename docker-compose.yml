@@ -44,7 +44,7 @@ services:
       KUMA_STORE_POSTGRES_PASSWORD: kuma
       KUMA_STORE_POSTGRES_DB_NAME: kuma
     ports:
-      - 5685:5685
+      - ${HOST_IP_ADDRESS}:5685:5685
       - 5681:5681
     command: run
   

@@ -4,5 +4,5 @@
 - `docker-compose up -d` in root folder
 - `docker-compose up -d` in `zone-1` folder
 - `docker-compose up -d` in `zone-2` folder
-- (optionally)`./k3d.sh` in `zone-management` folder
+- `./k3d.sh` in `zone-management` folder
 - `docker-compose up echo_client` in `zone-2` to sent request

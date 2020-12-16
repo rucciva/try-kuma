@@ -17,12 +17,12 @@ helm install kuma \
 
 docker run -it --rm \
     --net host \
-    -v $HOME/.kube/config:/home/kumactl/.kube/config \
+    -v "${KUBECONFIG:-${HOME}/.kube/config}:"/home/kumactl/.kube/config \
     kong-docker-kuma-docker.bintray.io/kumactl:${KUMA_VERSION} \
     kumactl install dns | kubectl apply -f -
 
 docker run -it --rm \
     --net host \
-    -v $HOME/.kube/config:/home/kumactl/.kube/config \
+    -v "${KUBECONFIG:-${HOME}/.kube/config}":/home/kumactl/.kube/config \
     kong-docker-kuma-docker.bintray.io/kumactl:${KUMA_VERSION} \
     kumactl  install metrics | kubectl apply -f -

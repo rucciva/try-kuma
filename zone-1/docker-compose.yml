@@ -7,6 +7,8 @@ networks:
       config:
         - subnet: 172.16.111.0/24
           gateway: 172.16.111.1
+volumes:
+  secrets:
 
 services:
   kuma:
@@ -23,8 +25,9 @@ services:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
     restart: on-failure
     network_mode: service:kuma
+    user: 0:0
     volumes:
-      - ./secrets:/etc/kuma/secrets
+      - secrets:/etc/kuma/secrets
     entrypoint: sh -c 
     command: 
       - kumactl generate dataplane-token 
@@ -45,10 +48,10 @@ services:
       default:
         ipv4_address: 172.16.111.200
     ports:
-      - 10001:12701
+      - ${HOST_IP_ADDRESS}:10001:12701
     volumes:
       - ./dataplanes/ingress.yml:/etc/kuma/dataplane.yml
-      - ./secrets:/etc/kuma/secrets
+      - secrets:/etc/kuma/secrets
     command: run 
       --cp-address https://kuma:5678
       --dataplane-token-file=/etc/kuma/secrets/ingress.jwt
@@ -63,8 +66,9 @@ services:
     image: kong-docker-kuma-docker.bintray.io/kumactl:$KUMA_VERSION
     restart: on-failure
     network_mode: service:kuma
+    user: 0:0
     volumes:
-      - ./secrets:/etc/kuma/secrets
+      - secrets:/etc/kuma/secrets
     entrypoint: sh -c 
     command: 
       - kumactl generate dataplane-token  
@@ -85,7 +89,7 @@ services:
         ipv4_address: 172.16.111.100
     volumes:
       - ./dataplanes/echo-server.yml:/etc/kuma/dataplane.yml
-      - ./secrets:/etc/kuma/secrets
+      - secrets:/etc/kuma/secrets
     command: run 
       --cp-address https://kuma:5678
       --dataplane-token-file=/etc/kuma/secrets/echo-server.jwt
